@@ -1,0 +1,3 @@
+# Ignore contents of this folder but keep the folder in git
+*
+!.gitkeep
