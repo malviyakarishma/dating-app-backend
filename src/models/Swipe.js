@@ -17,6 +17,15 @@ const swipeSchema = new mongoose.Schema(
       enum: ['like', 'dislike'],
       required: true,
     },
+    // Only relevant when status === 'like'
+    // pending  → request sent, waiting for recipient to respond
+    // accepted → recipient accepted → both are matched
+    // declined → recipient declined → request removed
+    matchStatus: {
+      type: String,
+      enum: ['pending', 'accepted', 'declined'],
+      default: 'pending',
+    },
   },
   {
     timestamps: true,

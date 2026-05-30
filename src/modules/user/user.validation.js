@@ -2,6 +2,7 @@ import Joi from 'joi';
 
 export const updateProfile = {
   body: Joi.object().keys({
+    name: Joi.string().max(100),
     gender: Joi.string().valid('Male', 'Female', 'Other'),
     dob: Joi.date(),
     zodiac: Joi.string().max(100),
@@ -23,3 +24,4 @@ export const updateProfile = {
     isProfileComplete: Joi.boolean(),
   }),
 };
+

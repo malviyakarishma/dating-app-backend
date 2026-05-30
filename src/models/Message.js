@@ -2,12 +2,17 @@ import mongoose from 'mongoose';
 
 const messageSchema = new mongoose.Schema(
   {
-    sender: {
+    conversationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Conversation',
+      required: true,
+    },
+    senderId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
     },
-    receiver: {
+    receiverId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
       required: true,
@@ -17,15 +22,20 @@ const messageSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    status: {
+      type: String,
+      enum: ['sent', 'delivered', 'seen'],
+      default: 'sent',
+    },
   },
   {
     timestamps: true,
   }
 );
 
-// Index to quickly fetch DMs ordered by time between two users
-messageSchema.index({ sender: 1, receiver: 1, createdAt: 1 });
-messageSchema.index({ receiver: 1, sender: 1, createdAt: 1 });
+// Indexes for fast history loading & active rooms
+messageSchema.index({ conversationId: 1, createdAt: 1 });
+messageSchema.index({ senderId: 1, receiverId: 1 });
 
 const Message = mongoose.model('Message', messageSchema);
 export default Message;

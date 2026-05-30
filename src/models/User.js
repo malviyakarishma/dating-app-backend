@@ -124,6 +124,18 @@ const userSchema = new mongoose.Schema(
       default: false,
       select: false,
     },
+    isOnline: {
+      type: Boolean,
+      default: false,
+    },
+    lastSeen: {
+      type: Date,
+      default: Date.now,
+    },
+    fcmToken: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,

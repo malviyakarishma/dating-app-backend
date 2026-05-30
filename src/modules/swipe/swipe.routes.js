@@ -10,5 +10,7 @@ router.use(protect);
 
 router.post('/', validate(swipeValidation.swipe), swipeController.swipe);
 router.get('/matches', swipeController.getMatchesList);
+router.get('/requests', swipeController.getRequests);
+router.post('/requests/:id', validate(swipeValidation.respondRequest), swipeController.respondRequest);
 
 export default router;

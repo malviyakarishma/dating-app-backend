@@ -69,12 +69,33 @@ export const verifyToken = async (tokenStr, type) => {
 };
 
 /**
+ * Parse time duration string (e.g. '7d', '1h', '30m') to milliseconds
+ * @param {string} str
+ * @returns {number} Milliseconds
+ */
+const parseExpiresIn = (str) => {
+  const match = str.match(/^(\d+)(ms|s|m|h|d|w|y)?$/);
+  if (!match) return 60 * 60 * 1000; // default 1 hour
+  const value = parseInt(match[1], 10);
+  const unit = match[2] || 'ms';
+  switch (unit) {
+    case 's': return value * 1000;
+    case 'm': return value * 60 * 1000;
+    case 'h': return value * 60 * 60 * 1000;
+    case 'd': return value * 24 * 60 * 60 * 1000;
+    case 'w': return value * 7 * 24 * 60 * 60 * 1000;
+    default: return value;
+  }
+};
+
+/**
  * Generate Access and Refresh tokens for a user
  * @param {User} user
  * @returns {Promise<Object>} Object containing access and refresh token details
  */
 export const generateAuthTokens = async (user) => {
-  const accessTokenExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  const expiresStr = process.env.JWT_EXPIRES_IN || '1h';
+  const accessTokenExpires = new Date(Date.now() + parseExpiresIn(expiresStr));
   const accessToken = generateToken(user._id, accessTokenExpires, 'access');
 
   const refreshTokenExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days

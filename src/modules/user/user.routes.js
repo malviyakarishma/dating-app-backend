@@ -15,3 +15,4 @@ router.get('/discover', userController.getDiscovery);
 router.post('/upload', upload.array('photos', 6), userController.uploadPhotos);
 
 export default router;
+

@@ -8,3 +8,9 @@ export const swipe = {
     status: Joi.string().required().valid('like', 'dislike'),
   }),
 };
+
+export const respondRequest = {
+  body: Joi.object().keys({
+    action: Joi.string().required().valid('accept', 'decline'),
+  }),
+};

@@ -19,12 +19,14 @@ export const postMessage = async (req, res, next) => {
 export const getChatHistory = async (req, res, next) => {
   try {
     const { otherUserId } = req.params;
+    const conversation = await chatService.getOrCreateConversation(req.user.id, otherUserId);
     const messages = await chatService.getMessages(req.user.id, otherUserId);
 
     res.status(200).json({
       status: 'success',
       results: messages.length,
       data: {
+        conversationId: conversation._id,
         messages,
       },
     });
