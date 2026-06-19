@@ -7,6 +7,7 @@ const router = Router();
 
 router.post('/register', validate(authValidation.register), authController.register);
 router.post('/login', validate(authValidation.login), authController.login);
+router.post('/google', validate(authValidation.googleAuth), authController.googleAuth);
 router.post('/logout', validate(authValidation.refresh), authController.logout);
 router.post('/refresh', validate(authValidation.refresh), authController.refresh);
 router.post('/forgot-password', validate(authValidation.forgotPassword), authController.forgotPassword);

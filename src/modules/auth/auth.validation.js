@@ -15,6 +15,12 @@ export const login = {
   }),
 };
 
+export const googleAuth = {
+  body: Joi.object().keys({
+    idToken: Joi.string().required(),
+  }),
+};
+
 export const forgotPassword = {
   body: Joi.object().keys({
     email: Joi.string().required().email(),

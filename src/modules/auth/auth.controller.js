@@ -33,6 +33,23 @@ export const login = async (req, res, next) => {
   }
 };
 
+export const googleAuth = async (req, res, next) => {
+  try {
+    const { idToken } = req.body;
+    const { user, tokens } = await authService.googleSignIn(idToken);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user,
+        tokens,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const logout = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;

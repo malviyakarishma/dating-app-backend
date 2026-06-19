@@ -22,9 +22,18 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters'],
       select: false,
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true,
+    },
+    authProvider: {
+      type: String,
+      enum: ['local', 'google'],
+      default: 'local',
     },
     isProfileComplete: {
       type: Boolean,
@@ -160,7 +169,12 @@ userSchema.virtual('age').get(function () {
 
 // Encrypt password before saving and determine profile completion status
 userSchema.pre('save', async function (next) {
-  if (this.isModified('password')) {
+  // Validate password for local auth
+  if (this.isNew && this.authProvider === 'local' && !this.password) {
+    return next(new Error('Password is required for local authentication'));
+  }
+
+  if (this.isModified('password') && this.password) {
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
   }

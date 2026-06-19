@@ -1,10 +1,13 @@
 import bcrypt from 'bcryptjs';
+import { OAuth2Client } from 'google-auth-library';
 import User from '../../models/User.js';
 import Token from '../../models/Token.js';
 import PasswordHistory from '../../models/PasswordHistory.js';
 import * as tokenServices from '../../services/tokenServices.js';
 import * as emailService from '../../services/emailService.js';
 import AppError from '../../utils/AppError.js';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /**
  * Register a new user
@@ -33,6 +36,62 @@ export const registerUser = async (userBody) => {
   // Hide password in response
   user.password = undefined;
 
+  const tokens = await tokenServices.generateAuthTokens(user);
+
+  return { user, tokens };
+};
+
+/**
+ * Google Sign-In / Sign-Up
+ * Verifies the Google ID token, finds or creates the user.
+ * @param {string} idToken - Google ID token from the client
+ * @returns {Promise<Object>} Object containing user and tokens
+ */
+export const googleSignIn = async (idToken) => {
+  // Verify the ID token with Google
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch (err) {
+    throw new AppError('Invalid Google token', 401);
+  }
+
+  const { sub: googleId, email, name, picture } = payload;
+
+  if (!email) {
+    throw new AppError('Google account does not have an email', 400);
+  }
+
+  // Try to find existing user by googleId first, then by email
+  let user = await User.findOne({ googleId });
+
+  if (!user) {
+    user = await User.findOne({ email });
+
+    if (user) {
+      // Existing user with same email but registered via local auth
+      // Link their Google account
+      user.googleId = googleId;
+      if (!user.authProvider || user.authProvider === 'local') {
+        user.authProvider = 'google';
+      }
+      await user.save();
+    } else {
+      // Brand new user — create account
+      user = await User.create({
+        name: name || email.split('@')[0],
+        email,
+        googleId,
+        authProvider: 'google',
+      });
+    }
+  }
+
+  user.password = undefined;
   const tokens = await tokenServices.generateAuthTokens(user);
 
   return { user, tokens };
