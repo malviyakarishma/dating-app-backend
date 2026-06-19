@@ -180,9 +180,19 @@ export const getConversations = async (userId) => {
 
   const conversations = await Promise.all(
     matchedUsers.map(async (user) => {
-      const conversation = await getOrCreateConversation(userId, user._id);
-      
+      // Only retrieve existing conversations — don't create new ones
+      const conversation = await Conversation.findOne({
+        participants: { $all: [userId, user._id] },
+      });
+
+      // Skip if no conversation exists yet
+      if (!conversation || !conversation.lastMessage) return null;
+
       const latestMessage = await Message.findById(conversation.lastMessage);
+
+      // Skip if there are truly no messages exchanged
+      if (!latestMessage) return null;
+
       const unreadCount = conversation.unreadCounts.get(userId.toString()) || 0;
 
       return {
@@ -201,12 +211,15 @@ export const getConversations = async (userId) => {
     })
   );
 
-  // Order conversations: most recent messages / match activations first
-  conversations.sort((a, b) => {
+  // Filter out null entries (matches with no messages)
+  const activeConversations = conversations.filter(c => c !== null);
+
+  // Order conversations: most recent messages first
+  activeConversations.sort((a, b) => {
     const timeA = a.latestMessage ? new Date(a.latestMessage.createdAt) : new Date(0);
     const timeB = b.latestMessage ? new Date(b.latestMessage.createdAt) : new Date(0);
     return timeB - timeA;
   });
 
-  return conversations;
+  return activeConversations;
 };

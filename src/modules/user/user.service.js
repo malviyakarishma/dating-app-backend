@@ -63,10 +63,23 @@ export const updateProfile = async (userId, updateBody) => {
 
 
 export const getDiscoveryProfiles = async (userId, filters = {}) => {
-  const swipedUserIds = await Swipe.find({ liker: userId }).distinct('liked');
+  // Users we have already swiped on (liked or disliked)
+  const ourSwipes = await Swipe.find({ liker: userId }).distinct('liked');
+  
+  // Users who have swiped on us (including incoming likes/requests)
+  const theirSwipes = await Swipe.find({ liked: userId }).distinct('liker');
+
+  // Combine and deduplicate the IDs to exclude
+  const excludeIds = [
+    ...new Set([
+      ...ourSwipes.map(id => id.toString()),
+      ...theirSwipes.map(id => id.toString()),
+      userId.toString()
+    ])
+  ];
 
   const query = {
-    _id: { $nin: [...swipedUserIds, userId] },
+    _id: { $nin: excludeIds },
     isProfileComplete: true,
   };
 
