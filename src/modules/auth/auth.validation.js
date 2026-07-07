@@ -46,3 +46,16 @@ export const refresh = {
     refreshToken: Joi.string().required(),
   }),
 };
+
+export const verifyRegistrationOtp = {
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+    otp: Joi.string().required().length(6).message('OTP must be a 6-digit number'),
+  }),
+};
+
+export const resendRegistrationOtp = {
+  body: Joi.object().keys({
+    email: Joi.string().required().email(),
+  }),
+};

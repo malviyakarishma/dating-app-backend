@@ -176,7 +176,9 @@ export const getConversations = async (userId) => {
     matchStatus: 'accepted',
   }).populate('liker');
 
-  const matchedUsers = mutualSwipes.map((swipe) => swipe.liker);
+  const matchedUsers = mutualSwipes
+    .filter((swipe) => swipe.liker != null)
+    .map((swipe) => swipe.liker);
 
   const conversations = await Promise.all(
     matchedUsers.map(async (user) => {

@@ -4,6 +4,7 @@ import User from '../models/User.js';
 import Message from '../models/Message.js';
 import Conversation from '../models/Conversation.js';
 import Notification from '../models/Notification.js';
+import MatchChatAccess from '../models/MatchChatAccess.js';
 
 // active memory maps
 export const onlineUsers = new Map(); // userId -> Set of socket.id
@@ -139,6 +140,23 @@ export const initSocket = (server) => {
     // 5) Send Message event (Optimistic or REST Fallback compatibility)
     socket.on('sendMessage', async ({ conversationId, text, receiverId }) => {
       try {
+        // ── Chat Access Gate ──────────────────────────────────────────
+        // Verify the sender has active paid chat access with the receiver
+        const chatAccess = await MatchChatAccess.findOne({
+          payerUserId: userId,
+          targetUserId: receiverId,
+          status: 'ACTIVE',
+          expiryDate: { $gt: new Date() },
+        });
+
+        if (!chatAccess) {
+          return socket.emit('error', {
+            message: 'Chat access expired. Please renew access.',
+            code: 'CHAT_ACCESS_EXPIRED',
+          });
+        }
+        // ─────────────────────────────────────────────────────────────
+
         let conversation = await Conversation.findById(conversationId);
         if (!conversation) {
           return socket.emit('error', { message: 'Conversation not found' });

@@ -71,7 +71,9 @@ export const getPendingRequests = async (userId) => {
     matchStatus: 'pending',
   }).populate('liker');
 
-  return requests.map((s) => ({ swipeId: s._id, user: s.liker, createdAt: s.createdAt }));
+  return requests
+    .filter((s) => s.liker != null)
+    .map((s) => ({ swipeId: s._id, user: s.liker, createdAt: s.createdAt }));
 };
 
 /**
@@ -129,5 +131,7 @@ export const getMatches = async (userId) => {
     matchStatus: 'accepted',
   }).populate('liker');
 
-  return mutualSwipes.map((s) => s.liker);
+  return mutualSwipes
+    .filter((s) => s.liker != null)
+    .map((s) => s.liker);
 };

@@ -35,6 +35,10 @@ const userSchema = new mongoose.Schema(
       enum: ['local', 'google'],
       default: 'local',
     },
+    isEmailVerified: {
+      type: Boolean,
+      default: false,
+    },
     isProfileComplete: {
       type: Boolean,
       default: false,
@@ -142,6 +146,11 @@ const userSchema = new mongoose.Schema(
       default: Date.now,
     },
     fcmToken: {
+      type: String,
+      default: null,
+    },
+    // Stripe Customer ID for payment processing
+    stripeCustomerId: {
       type: String,
       default: null,
     },

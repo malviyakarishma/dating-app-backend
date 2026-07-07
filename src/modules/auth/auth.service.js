@@ -25,7 +25,7 @@ export const registerUser = async (userBody) => {
 
 
   // Create new user (only credentials - profile setup happens in separate PUT steps)
-  const user = await User.create({ name, email, password });
+  const user = await User.create({ name, email, password, isEmailVerified: false });
 
   // Save the initial password to Password History (already hashed inside user.password)
   await PasswordHistory.create({
@@ -33,12 +33,23 @@ export const registerUser = async (userBody) => {
     password: user.password,
   });
 
+  // Generate a random 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  // Save OTP and expiry (valid for 10 minutes)
+  user.otp = otp;
+  user.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+  user.otpVerified = false;
+
+  await user.save();
+
+  // Send the OTP email
+  await emailService.sendOtpEmail(email, otp); // Using the same email template for now
+
   // Hide password in response
   user.password = undefined;
 
-  const tokens = await tokenServices.generateAuthTokens(user);
-
-  return { user, tokens };
+  return { user };
 };
 
 /**
@@ -87,6 +98,7 @@ export const googleSignIn = async (idToken) => {
         email,
         googleId,
         authProvider: 'google',
+        isEmailVerified: true, // Google emails are verified
       });
     }
   }
@@ -108,6 +120,10 @@ export const loginUser = async (email, password) => {
 
   if (!user || !(await user.comparePassword(password))) {
     throw new AppError('Incorrect email or password', 401);
+  }
+
+  if (!user.isEmailVerified) {
+    throw new AppError('Please verify your email address first', 403);
   }
 
   user.password = undefined;
@@ -199,6 +215,59 @@ export const verifyForgotPasswordOtp = async (email, otp) => {
 
   user.otpVerified = true;
   await user.save();
+};
+
+/**
+ * Verify Registration OTP
+ * @param {string} email
+ * @param {string} otp
+ * @returns {Promise<Object>} Object containing user and tokens
+ */
+export const verifyRegistrationOtp = async (email, otp) => {
+  const user = await User.findOne({ email }).select('+otp +otpExpires');
+  if (!user) {
+    throw new AppError('No user found with this email address', 404);
+  }
+
+  if (user.isEmailVerified) {
+    throw new AppError('Email is already verified', 400);
+  }
+
+  if (!user.otp || user.otp !== otp || user.otpExpires < new Date()) {
+    throw new AppError('Invalid or expired OTP', 400);
+  }
+
+  user.isEmailVerified = true;
+  user.otp = null;
+  user.otpExpires = null;
+  user.otpVerified = false; // Registration doesn't need to keep this true
+  await user.save();
+
+  const tokens = await tokenServices.generateAuthTokens(user);
+  return { user, tokens };
+};
+
+/**
+ * Resend Registration OTP
+ * @param {string} email
+ */
+export const resendRegistrationOtp = async (email) => {
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw new AppError('No user found with this email address', 404);
+  }
+
+  if (user.isEmailVerified) {
+    throw new AppError('Email is already verified', 400);
+  }
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  
+  user.otp = otp;
+  user.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
+  await user.save();
+
+  await emailService.sendOtpEmail(email, otp);
 };
 
 /**

@@ -2,13 +2,13 @@ import * as authService from './auth.service.js';
 
 export const register = async (req, res, next) => {
   try {
-    const { user, tokens } = await authService.registerUser(req.body);
+    const { user } = await authService.registerUser(req.body);
     
     res.status(201).json({
       status: 'success',
+      message: 'Verification OTP sent to your email',
       data: {
         user,
-        tokens,
       },
     });
   } catch (error) {
@@ -117,6 +117,37 @@ export const resetPassword = async (req, res, next) => {
     res.status(200).json({
       status: 'success',
       message: 'Password reset successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyRegistration = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    const { user, tokens } = await authService.verifyRegistrationOtp(email, otp);
+
+    res.status(200).json({
+      status: 'success',
+      data: {
+        user,
+        tokens,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resendRegistrationOtp = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    await authService.resendRegistrationOtp(email);
+
+    res.status(200).json({
+      status: 'success',
+      message: 'OTP resent to email successfully',
     });
   } catch (error) {
     next(error);

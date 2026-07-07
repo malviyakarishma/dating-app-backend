@@ -14,4 +14,7 @@ router.post('/forgot-password', validate(authValidation.forgotPassword), authCon
 router.post('/verify-otp', validate(authValidation.verifyOtp), authController.verifyOtp);
 router.post('/reset-password', validate(authValidation.resetPassword), authController.resetPassword);
 
+router.post('/verify-registration', validate(authValidation.verifyRegistrationOtp), authController.verifyRegistration);
+router.post('/resend-registration-otp', validate(authValidation.resendRegistrationOtp), authController.resendRegistrationOtp);
+
 export default router;
