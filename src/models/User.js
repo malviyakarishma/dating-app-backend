@@ -145,7 +145,7 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
-    fcmToken: {
+    expoPushToken: {
       type: String,
       default: null,
     },

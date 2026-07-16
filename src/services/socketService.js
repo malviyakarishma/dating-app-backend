@@ -13,14 +13,15 @@ export const userActiveConversations = new Map(); // userId -> conversationId (a
 let io = null;
 
 /**
- * Send push notification (simulated push dispatch system)
+ * Send push notification via Expo Push API
+ * Works even when the app is closed — Expo delivers via FCM/APNs
  */
 export const sendPushNotification = async (recipientId, title, body, data = {}) => {
   try {
     const recipient = await User.findById(recipientId);
     if (!recipient) return;
 
-    // Save mock Notification document to MongoDB
+    // Save Notification document to MongoDB
     await Notification.create({
       userId: recipientId,
       title,
@@ -28,9 +29,42 @@ export const sendPushNotification = async (recipientId, title, body, data = {}) 
     });
 
     console.log(`[Push Notification] Sent to ${recipient.name}: "${title}: ${body}"`, data);
+
+    // Send real push notification via Expo Push API if token exists
+    if (recipient.expoPushToken) {
+      try {
+        const pushMessage = {
+          to: recipient.expoPushToken,
+          sound: 'default',
+          title,
+          body,
+          data,
+        };
+
+        const response = await fetch('https://exp.host/--/api/v2/push/send', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Accept-Encoding': 'gzip, deflate',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(pushMessage),
+        });
+
+        const result = await response.json();
+        if (result.data?.status === 'error') {
+          console.error('[Expo Push] Error:', result.data.message);
+          // If token is invalid, clear it
+          if (result.data.details?.error === 'DeviceNotRegistered') {
+            await User.findByIdAndUpdate(recipientId, { expoPushToken: null });
+          }
+        }
+      } catch (pushErr) {
+        console.error('[Expo Push] Failed to send:', pushErr.message);
+      }
+    }
     
-    // In production, we'd fire actual FCM payload here using admin.messaging().send()
-    // For local simulation, if the user has active sockets anywhere, we also emit a background notification alert event
+    // Also emit via socket if user is online (for in-app notifications)
     const sockets = onlineUsers.get(recipientId.toString());
     if (sockets) {
       sockets.forEach(socketId => {
@@ -38,7 +72,7 @@ export const sendPushNotification = async (recipientId, title, body, data = {}) 
       });
     }
   } catch (error) {
-    console.error('Error dispatching simulated push notification:', error);
+    console.error('Error dispatching push notification:', error);
   }
 };
 
@@ -138,7 +172,7 @@ export const initSocket = (server) => {
     });
 
     // 5) Send Message event (Optimistic or REST Fallback compatibility)
-    socket.on('sendMessage', async ({ conversationId, text, receiverId }) => {
+    socket.on('sendMessage', async ({ conversationId, text, receiverId, effect }) => {
       try {
         // ── Chat Access Gate ──────────────────────────────────────────
         // Verify the sender has active paid chat access with the receiver
@@ -169,6 +203,7 @@ export const initSocket = (server) => {
           receiverId,
           text,
           status: 'sent',
+          effect,
         });
 
         // Determine if receiver is online and active in room

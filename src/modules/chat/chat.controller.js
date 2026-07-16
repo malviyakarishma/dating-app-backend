@@ -2,8 +2,8 @@ import * as chatService from './chat.service.js';
 
 export const postMessage = async (req, res, next) => {
   try {
-    const { receiverId, text } = req.body;
-    const message = await chatService.sendMessage(req.user.id, receiverId, text);
+    const { receiverId, text, effect } = req.body;
+    const message = await chatService.sendMessage(req.user.id, receiverId, text, effect);
 
     res.status(201).json({
       status: 'success',

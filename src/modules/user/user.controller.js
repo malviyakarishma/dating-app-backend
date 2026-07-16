@@ -120,3 +120,21 @@ export const uploadPhotos = async (req, res, next) => {
     next(error);
   }
 };
+
+export const savePushToken = async (req, res, next) => {
+  try {
+    const { expoPushToken } = req.body;
+    if (!expoPushToken) {
+      return next(new AppError('expoPushToken is required', 400));
+    }
+
+    await userService.updateProfile(req.user.id, { expoPushToken });
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Push token saved successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};

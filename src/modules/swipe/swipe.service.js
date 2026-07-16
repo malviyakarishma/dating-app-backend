@@ -1,6 +1,7 @@
 import Swipe from '../../models/Swipe.js';
 import User from '../../models/User.js';
 import AppError from '../../utils/AppError.js';
+import { sendPushNotification } from '../../services/socketService.js';
 
 /**
  * Register a swipe action (like or dislike).
@@ -11,6 +12,7 @@ import AppError from '../../utils/AppError.js';
  */
 export const createSwipe = async (likerId, likedId, status) => {
   const targetUser = await User.findById(likedId);
+  const liker = await User.findById(likerId);
   if (!targetUser) throw new AppError('Target user not found', 404);
 
   if (likerId.toString() === likedId.toString()) {
@@ -47,6 +49,20 @@ export const createSwipe = async (likerId, likedId, status) => {
       { upsert: true, new: true }
     );
 
+    await sendPushNotification(
+      likedId,
+      'New Match!',
+      `You matched with ${liker.name}!`,
+      { type: 'match' }
+    );
+
+    await sendPushNotification(
+      likerId,
+      'New Match!',
+      `You matched with ${targetUser.name}!`,
+      { type: 'match' }
+    );
+
     return { isMatch: true, targetUser };
   }
 
@@ -55,6 +71,13 @@ export const createSwipe = async (likerId, likedId, status) => {
     { liker: likerId, liked: likedId },
     { status: 'like', matchStatus: 'pending' },
     { upsert: true, new: true }
+  );
+
+  await sendPushNotification(
+    likedId,
+    'New Request',
+    `${liker.name} wants to connect with you!`,
+    { type: 'request' }
   );
 
   return { isMatch: false, targetUser };
@@ -101,6 +124,14 @@ export const respondToRequest = async (swipeId, responderId, action) => {
       { liker: responderId, liked: swipe.liker._id },
       { status: 'like', matchStatus: 'accepted' },
       { upsert: true, new: true }
+    );
+
+    const responder = await User.findById(responderId);
+    await sendPushNotification(
+      swipe.liker._id,
+      'Request Accepted',
+      `${responder.name} accepted your request. Say hi!`,
+      { type: 'match' }
     );
 
     return { accepted: true, matchedUser: swipe.liker };

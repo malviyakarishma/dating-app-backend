@@ -35,7 +35,7 @@ export const getOrCreateConversation = async (user1, user2) => {
 /**
  * REST Endpoint support for sending a text message.
  */
-export const sendMessage = async (senderId, receiverId, text) => {
+export const sendMessage = async (senderId, receiverId, text, effect = null) => {
   const isMatched = await areUsersMatched(senderId, receiverId);
   if (!isMatched) {
     throw new AppError('You can only message users you have matched with', 403);
@@ -51,6 +51,7 @@ export const sendMessage = async (senderId, receiverId, text) => {
     receiverId,
     text,
     status: 'sent',
+    effect,
   });
 
   // Real-time socket check
@@ -203,6 +204,7 @@ export const getConversations = async (userId) => {
           _id: user._id,
           name: user.name,
           photos: user.photos,
+          gender: user.gender,
           isOnline: user.isOnline,
           lastSeen: user.lastSeen,
         },

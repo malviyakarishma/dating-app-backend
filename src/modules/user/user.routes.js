@@ -13,6 +13,7 @@ router.get('/profile', userController.getProfile);
 router.patch('/profile', validate(userValidation.updateProfile), userController.updateProfile);
 router.get('/discover', userController.getDiscovery);
 router.post('/upload', upload.array('photos', 6), userController.uploadPhotos);
+router.patch('/push-token', userController.savePushToken);
 
 export default router;
 
