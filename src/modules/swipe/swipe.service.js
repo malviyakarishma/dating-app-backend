@@ -28,17 +28,8 @@ export const createSwipe = async (likerId, likedId, status) => {
       status: 'like',
       createdAt: { $gte: twoDaysAgo }
     });
-    if (recentLikes >= 3) {
-      throw new AppError('You have reached your limit of 3 right swipes per 2 days.', 429);
-    }
-  } else if (status === 'dislike') {
-    const recentDislikes = await Swipe.countDocuments({
-      liker: likerId,
-      status: 'dislike',
-      createdAt: { $gte: twoDaysAgo }
-    });
-    if (recentDislikes >= 5) {
-      throw new AppError('You have reached your limit of 5 left swipes per 2 days.', 429);
+    if (recentLikes >= 5) {
+      throw new AppError('You have reached your limit of 5 right swipes per 2 days.', 429);
     }
   }
 

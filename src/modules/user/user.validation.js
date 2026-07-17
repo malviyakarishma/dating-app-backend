@@ -7,7 +7,6 @@ export const updateProfile = {
     dob: Joi.date(),
     zodiac: Joi.string().max(100),
     occupation: Joi.string().max(200),
-    isStudent: Joi.string().valid('Yes', 'No'),
     college: Joi.string().allow('', null).max(200),
     location: Joi.string().max(200),
     height: Joi.string().max(20),

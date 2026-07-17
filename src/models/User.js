@@ -59,10 +59,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    isStudent: {
-      type: String,
-      enum: ['Yes', 'No'],
-    },
     college: {
       type: String,
       trim: true,
@@ -190,7 +186,7 @@ userSchema.pre('save', async function (next) {
 
   // Calculate isProfileComplete automatically
   const requiredFields = [
-    'gender', 'dob', 'zodiac', 'occupation', 'isStudent',
+    'gender', 'dob', 'zodiac', 'occupation',
     'location', 'height', 'weight', 'music', 'movies',
     'date', 'food', 'relationshipType'
   ];
