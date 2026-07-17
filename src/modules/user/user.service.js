@@ -1,8 +1,9 @@
 import User from '../../models/User.js';
 import Swipe from '../../models/Swipe.js';
+import MatchChatAccess from '../../models/MatchChatAccess.js';
 import AppError from '../../utils/AppError.js';
 import cloudinary from '../../config/cloudinary.js';
-
+import stripe from '../../config/stripe.js';
 export const getUserById = async (id) => {
   const user = await User.findById(id);
   if (!user) {
@@ -89,4 +90,57 @@ export const getDiscoveryProfiles = async (userId, filters = {}) => {
 
   const profiles = await User.find(query);
   return profiles;
+};
+
+export const deleteUserAccount = async (userId) => {
+  const user = await getUserById(userId);
+
+  // 1. Delete Cloudinary images
+  if (user.photos && user.photos.length > 0) {
+    await Promise.allSettled(
+      user.photos.map(async (url) => {
+        if (url.startsWith('http')) {
+          const publicId = extractPublicId(url);
+          if (publicId) {
+            await cloudinary.uploader.destroy(publicId);
+          }
+        }
+      })
+    );
+  }
+
+  // 2. Cancel any active subscriptions involving this user (either they are paying, or someone is paying for them)
+  const activeSubscriptions = await MatchChatAccess.find({
+    $or: [{ payerUserId: userId }, { targetUserId: userId }],
+    status: 'ACTIVE',
+    accessType: 'SUBSCRIPTION',
+    stripeSubscriptionId: { $ne: null }
+  });
+
+  for (const sub of activeSubscriptions) {
+    try {
+      await stripe.subscriptions.cancel(sub.stripeSubscriptionId);
+      sub.status = 'CANCELLED';
+      await sub.save();
+    } catch (err) {
+      console.error(`Failed to cancel subscription ${sub.stripeSubscriptionId}:`, err);
+    }
+  }
+
+  // 3. Delete from Stripe (this also acts as a fallback to cancel their own subscriptions)
+  if (user.stripeCustomerId) {
+    try {
+      await stripe.customers.del(user.stripeCustomerId);
+    } catch (error) {
+      console.error('Failed to delete Stripe customer:', error);
+    }
+  }
+
+  // 4. Delete related Swipes
+  await Swipe.deleteMany({
+    $or: [{ liker: userId }, { liked: userId }]
+  });
+
+  // 5. Delete the User record
+  await User.findByIdAndDelete(userId);
 };

@@ -14,6 +14,6 @@ router.patch('/profile', validate(userValidation.updateProfile), userController.
 router.get('/discover', userController.getDiscovery);
 router.post('/upload', upload.array('photos', 6), userController.uploadPhotos);
 router.patch('/push-token', userController.savePushToken);
+router.delete('/profile', userController.deleteAccount);
 
 export default router;
-

@@ -1,4 +1,5 @@
 import * as userService from './user.service.js';
+import * as emailService from '../../services/emailService.js';
 import AppError from '../../utils/AppError.js';
 import cloudinary from '../../config/cloudinary.js';
 import fs from 'fs';
@@ -133,6 +134,29 @@ export const savePushToken = async (req, res, next) => {
     res.status(200).json({
       status: 'success',
       message: 'Push token saved successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteAccount = async (req, res, next) => {
+  try {
+    const user = await userService.getUserById(req.user.id);
+    const { email, name } = user;
+
+    await userService.deleteUserAccount(req.user.id);
+
+    // Send confirmation email asynchronously without blocking the response
+    if (email && name) {
+      emailService.sendAccountDeletionEmail(email, name).catch(err => {
+        console.error("Failed to send account deletion email:", err);
+      });
+    }
+
+    res.status(200).json({
+      status: 'success',
+      message: 'Account deleted successfully',
     });
   } catch (error) {
     next(error);

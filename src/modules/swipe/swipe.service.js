@@ -19,6 +19,30 @@ export const createSwipe = async (likerId, likedId, status) => {
     throw new AppError('You cannot swipe on yourself', 400);
   }
 
+  // Enforce swipe limits
+  const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
+
+  if (status === 'like') {
+    const recentLikes = await Swipe.countDocuments({
+      liker: likerId,
+      status: 'like',
+      createdAt: { $gte: twoDaysAgo }
+    });
+    if (recentLikes >= 3) {
+      throw new AppError('You have reached your limit of 3 right swipes per 2 days.', 429);
+    }
+  } else if (status === 'dislike') {
+    const recentDislikes = await Swipe.countDocuments({
+      liker: likerId,
+      status: 'dislike',
+      createdAt: { $gte: twoDaysAgo }
+    });
+    if (recentDislikes >= 5) {
+      throw new AppError('You have reached your limit of 5 left swipes per 2 days.', 429);
+    }
+  }
+
+
   if (status === 'dislike') {
     await Swipe.findOneAndUpdate(
       { liker: likerId, liked: likedId },

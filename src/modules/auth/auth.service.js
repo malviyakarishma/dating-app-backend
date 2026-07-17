@@ -44,7 +44,7 @@ export const registerUser = async (userBody) => {
   await user.save();
 
   // Send the OTP email
-  await emailService.sendOtpEmail(email, otp); // Using the same email template for now
+  await emailService.sendOtpEmail(email, otp, 'verify');
 
   // Hide password in response
   user.password = undefined;
@@ -267,7 +267,7 @@ export const resendRegistrationOtp = async (email) => {
   user.otpExpires = new Date(Date.now() + 10 * 60 * 1000);
   await user.save();
 
-  await emailService.sendOtpEmail(email, otp);
+  await emailService.sendOtpEmail(email, otp, 'verify');
 };
 
 /**
